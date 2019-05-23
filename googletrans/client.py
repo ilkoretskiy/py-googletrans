@@ -18,6 +18,19 @@ from googletrans.models import Translated, Detected
 EXCLUDES = ('en', 'ca', 'fr')
 
 
+class TooManyRequestsError(Exception):
+    def __init__(self, msg, response):
+        super(TooManyRequestsError, self).__init__(msg)
+        self.msg = msg
+        self.response = response
+
+class ResponseDecodeError(Exception):
+    def __init__(self, msg, doc, response):
+        super(ResponseDecodeError, self).__init__(msg)
+        self.msg = e.msg
+        self.doc = e.doc
+        self.response = response
+
 class Translator(object):
     """Google Translate ajax API implementation class
 
@@ -56,12 +69,12 @@ class Translator(object):
         self.service_urls = service_urls or ['translate.google.com']
         self.token_acquirer = TokenAcquirer(session=self.session, host=self.service_urls[0])
 
-        # Use HTTP2 Adapter if hyper is installed
-        try:  # pragma: nocover
-            from hyper.contrib import HTTP20Adapter
-            self.session.mount(urls.BASE, HTTP20Adapter())
-        except ImportError:  # pragma: nocover
-            pass
+        # # Use HTTP2 Adapter if hyper is installed
+        # try:  # pragma: nocover
+        #     from hyper.contrib import HTTP20Adapter
+        #     self.session.mount(urls.BASE, HTTP20Adapter())
+        # except ImportError:  # pragma: nocover
+        #     pass
 
     def _pick_service_url(self):
         if len(self.service_urls) == 1:
@@ -78,7 +91,16 @@ class Translator(object):
         url = urls.TRANSLATE.format(host=self._pick_service_url())
         r = self.session.get(url, params=params)
 
-        data = utils.format_json(r.text)
+        if r.status_code == 429:
+            raise TooManyRequestsError("Too many requests", r)
+
+        try:
+            data = utils.format_json(r.text)
+        except JSONDecodeError as e:
+            raise ResponseDecodeError(e.msg, e.doc, r)
+        except Exception as e:
+            raise
+
         return data
 
     def _parse_extra_data(self, data):
