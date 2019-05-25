@@ -27,8 +27,8 @@ class TooManyRequestsError(Exception):
 class ResponseDecodeError(Exception):
     def __init__(self, msg, doc, response):
         super(ResponseDecodeError, self).__init__(msg)
-        self.msg = e.msg
-        self.doc = e.doc
+        self.msg = msg
+        self.doc = doc
         self.response = response
 
 class Translator(object):
