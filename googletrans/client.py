@@ -7,6 +7,8 @@ You can translate text using this module.
 import requests
 import random
 
+from json import JSONDecodeError
+
 from googletrans import urls, utils
 from googletrans.adapters import TimeoutAdapter
 from googletrans.compat import PY3
